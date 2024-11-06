@@ -15,9 +15,9 @@ public class GameServer {
     }
 
     public void startGame() {
-        while (!gameHandler.isGameOver()) {
-            // Submit each player's task for this turn
-            for (Player player : gameHandler.getPlayers()) {
+        while(!gameHandler.isGameOver()){
+            //Submit each player's task for this turn
+            for(Player player : gameHandler.getPlayers()) {
                 playerPool.submit(new PlayerTask(player, gameHandler));
             }
 
@@ -29,7 +29,7 @@ public class GameServer {
             }
         }
         playerPool.shutdown();
-        System.out.println("Game Over! Total houses built: " + gameHandler.getTotalHouses());
+        System.out.println("Game Over! The winner is: " + gameHandler.getWinner().getPlayerName() + "! Congrats!:D");
     }
 
     public static void main(String[] args) {
