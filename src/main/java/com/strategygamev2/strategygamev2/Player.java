@@ -33,17 +33,17 @@ public class Player {
     }
 
     public boolean canBuildHouse() {
-        return inventory.getOrDefault("brick", 0) >= 2
-                && inventory.getOrDefault("stone", 0) >= 1
-                && inventory.getOrDefault("wood", 0) >= 1;
+        return inventory.getOrDefault("brick", 0) >= 3
+                && inventory.getOrDefault("stone", 0) >= 2
+                && inventory.getOrDefault("wood", 0) >= 2;
     }
 
     public void buildHouse() {
         if (canBuildHouse()) {
             housesBuilt++;
-            inventory.put("brick", inventory.get("brick") - 2);
-            inventory.put("stone", inventory.get("stone") - 1);
-            inventory.put("wood", inventory.get("wood") - 1);
+            inventory.put("brick", inventory.get("brick") - 3);
+            inventory.put("stone", inventory.get("stone") - 2);
+            inventory.put("wood", inventory.get("wood") - 2);
         }
     }
 

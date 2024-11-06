@@ -21,17 +21,35 @@ public class GameMap {
             for(int j = 0; j < size; j++) {
                 map[i][j] = new Cell();
                 if (random.nextInt(10) < 3) { //30% chance of placing a resource
-                    int prob = random.nextInt(10);
-                    if(prob < 3) //30% chance of placing a brick
-                        map[i][j].setResource(new Resource("brick"));
-                    else if (prob < 6) {//30% chance of placing a stone
-                        map[i][j].setResource(new Resource("stone"));
-                    } else { //40% chance of placing a wood
-                        map[i][j].setResource(new Resource("wood"));
-                    }
+                    placeRandomResource(map[i][j]);
                 }
             }
         }
+    }
+
+    public void placeRandomResource(Cell cell) {
+        Random random = new Random();
+        int prob = random.nextInt(10);
+        if(prob < 3) //30% chance of placing a brick
+            cell.setResource(new Resource("brick"));
+        else if (prob < 6) {//30% chance of placing a stone
+            cell.setResource(new Resource("stone"));
+        } else { //40% chance of placing a wood
+            cell.setResource(new Resource("wood"));
+        }
+    }
+
+    public void respawnResource() {
+        Random random = new Random();
+        for (int i = 0; i < size; i++) {
+            for (int j = 0; j < size; j++) {
+                if (!map[i][j].hasResource() && random.nextInt(10) < 3) {
+                    placeRandomResource(map[i][j]);
+                }
+            }
+        }
+        System.out.println("A resource has been respawned on the map.");
+
     }
 
     public Cell getCell(int x, int y) {
