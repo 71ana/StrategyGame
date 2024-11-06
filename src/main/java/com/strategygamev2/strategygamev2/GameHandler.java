@@ -1,6 +1,7 @@
 package com.strategygamev2.strategygamev2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -49,8 +50,14 @@ public class GameHandler {
                 if (cell.hasResource()) {
                     player.collectResource(cell.getResource());
                     System.out.println(player.getPlayerName() + " collected the resource: " + cell.getResource().getType() + ". Inventory is now: " + player.getInventory());
-                    Resource resource = cell.getResource();
                     cell.removeResource();
+                }
+
+                //Attempt to trade with any near player
+                for (Player i : players) {
+                    if (i != player && arePlayersAdjacent(i, player)) {
+                        trade(player, i);
+                    }
                 }
             }
         } finally {
@@ -69,6 +76,29 @@ public class GameHandler {
             }
         } finally {
             lock.unlock();
+        }
+    }
+
+    public boolean arePlayersAdjacent(Player player1, Player player2) {
+        int x = Math.abs(player1.getX() - player2.getX());
+        int y = Math.abs(player1.getY() - player2.getY());
+        return x <= 1 && y <= 1;
+    }
+
+    public void trade(Player player1, Player player2) {
+
+        if (player1.hasExtraResources("wood", 6) && player2.hasExtraResources("stone", 4)) {
+            player1.tradeResources("wood", "stone", 2, 1);
+            player2.tradeResources("stone", "wood",1, 2);
+            System.out.println(player1.getPlayerName() + " traded 2 woods for 1 stone with " + player2.getPlayerName());
+        } else if (player1.hasExtraResources("wood", 6) && player2.hasExtraResources("brick", 3)) {
+            player1.tradeResources("wood", "brick", 3, 1);
+            player2.tradeResources("brick", "wood", 1,3);
+            System.out.println(player1.getPlayerName() + " traded 2 woods for 1 brick with " + player2.getPlayerName());
+        } else if (player1.hasExtraResources("stone", 4) && player2.hasExtraResources("brick", 3)) {
+            player1.tradeResources("stone","brick", 2, 1);
+            player2.tradeResources("brick", "stone", 1, 2);
+            System.out.println(player1.getPlayerName() + " traded 1 stone for 1 brick with " + player2.getPlayerName());
         }
     }
 
