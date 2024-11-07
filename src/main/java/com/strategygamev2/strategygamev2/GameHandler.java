@@ -1,7 +1,6 @@
 package com.strategygamev2.strategygamev2;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -86,19 +85,35 @@ public class GameHandler {
     }
 
     public void trade(Player player1, Player player2) {
+        //We will try to lock both players to prevent deadlock
+        //The order lock will be based on their player name
+        Player firstLock = player1;
+        Player secondLock = player2;
 
-        if (player1.hasExtraResources("wood", 6) && player2.hasExtraResources("stone", 4)) {
-            player1.tradeResources("wood", "stone", 2, 1);
-            player2.tradeResources("stone", "wood",1, 2);
-            System.out.println(player1.getPlayerName() + " traded 2 woods for 1 stone with " + player2.getPlayerName());
-        } else if (player1.hasExtraResources("wood", 6) && player2.hasExtraResources("brick", 3)) {
-            player1.tradeResources("wood", "brick", 3, 1);
-            player2.tradeResources("brick", "wood", 1,3);
-            System.out.println(player1.getPlayerName() + " traded 2 woods for 1 brick with " + player2.getPlayerName());
-        } else if (player1.hasExtraResources("stone", 4) && player2.hasExtraResources("brick", 3)) {
-            player1.tradeResources("stone","brick", 2, 1);
-            player2.tradeResources("brick", "stone", 1, 2);
-            System.out.println(player1.getPlayerName() + " traded 1 stone for 1 brick with " + player2.getPlayerName());
+        if (player1.getPlayerName().compareTo(player2.getPlayerName()) > 0) {
+            firstLock = player2;
+            secondLock = player1;
+        }
+
+        firstLock.getLock().lock();
+        secondLock.getLock().lock();
+        try {
+            if (player1.hasExtraResources("wood", 6) && player2.hasExtraResources("stone", 4)) {
+                player1.tradeResources("wood", "stone", 2, 1);
+                player2.tradeResources("stone", "wood",1, 2);
+                System.out.println(player1.getPlayerName() + " traded 2 woods for 1 stone with " + player2.getPlayerName());
+            } else if (player1.hasExtraResources("wood", 6) && player2.hasExtraResources("brick", 3)) {
+                player1.tradeResources("wood", "brick", 3, 1);
+                player2.tradeResources("brick", "wood", 1,3);
+                System.out.println(player1.getPlayerName() + " traded 2 woods for 1 brick with " + player2.getPlayerName());
+            } else if (player1.hasExtraResources("stone", 4) && player2.hasExtraResources("brick", 3)) {
+                player1.tradeResources("stone","brick", 2, 1);
+                player2.tradeResources("brick", "stone", 1, 2);
+                System.out.println(player1.getPlayerName() + " traded 1 stone for 1 brick with " + player2.getPlayerName());
+            }
+        } finally {
+            firstLock.getLock().unlock();
+            secondLock.getLock().unlock();
         }
     }
 

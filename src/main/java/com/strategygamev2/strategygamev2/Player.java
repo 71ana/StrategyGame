@@ -1,12 +1,16 @@
 package com.strategygamev2.strategygamev2;
 
 import java.util.HashMap;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class Player {
     private final String playerName;
     private int x, y;
-    private HashMap<String, Integer> inventory;
+    private final HashMap<String, Integer> inventory;
     private int housesBuilt = 0;
+    private final Lock lock = new ReentrantLock();
+    private final ReentrantLock playerLock = new ReentrantLock();
 
     public Player(String playerName, int x, int y) {
         this.playerName = playerName;
@@ -29,39 +33,78 @@ public class Player {
 
     //Collecting resources and adding them to the inventory
     public void collectResource(Resource resource){
-        inventory.put(resource.getType(), inventory.getOrDefault(resource.getType(), 0) + 1);
+        lock.lock();
+        try {
+            inventory.put(resource.getType(), inventory.getOrDefault(resource.getType(), 0) + 1);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public boolean canBuildHouse() {
-        return inventory.getOrDefault("brick", 0) >= 2
-                && inventory.getOrDefault("stone", 0) >= 3
-                && inventory.getOrDefault("wood", 0) >= 4;
+        lock.lock();
+        try {
+            return inventory.getOrDefault("brick", 0) >= 2
+                    && inventory.getOrDefault("stone", 0) >= 3
+                    && inventory.getOrDefault("wood", 0) >= 4;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void buildHouse() {
-        if (canBuildHouse()) {
-            housesBuilt++;
-            inventory.put("brick", inventory.get("brick") - 2);
-            inventory.put("stone", inventory.get("stone") - 3);
-            inventory.put("wood", inventory.get("wood") - 4);
+        lock.lock();
+        try {
+            if (canBuildHouse()) {
+                housesBuilt++;
+                inventory.put("brick", inventory.get("brick") - 2);
+                inventory.put("stone", inventory.get("stone") - 3);
+                inventory.put("wood", inventory.get("wood") - 4);
+            }
+        } finally {
+            lock.unlock();
         }
     }
 
     public boolean hasExtraResources(String resource, int minRequired) {
-        return inventory.getOrDefault(resource, 0) > minRequired;
+        lock.lock();
+        try {
+            return inventory.getOrDefault(resource, 0) > minRequired;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public void tradeResources(String resourceToGive, String resourceToReceive, int amountToGive, int amountToReceive) {
-        inventory.put(resourceToGive, inventory.get(resourceToGive) - amountToGive);
-        inventory.put(resourceToReceive, inventory.get(resourceToReceive) + amountToReceive);
+        lock.lock();
+        try {
+            inventory.put(resourceToGive, inventory.get(resourceToGive) - amountToGive);
+            inventory.put(resourceToReceive, inventory.get(resourceToReceive) + amountToReceive);
+        } finally {
+            lock.unlock();
+        }
     }
 
     public int getHousesBuilt() {
-        return housesBuilt;
+        lock.lock();
+        try {
+            return housesBuilt;
+        } finally {
+            lock.unlock();
+        }
     }
 
     public HashMap<String, Integer> getInventory() {
-        return inventory;
+        lock.lock();
+        try {
+            return inventory;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    public ReentrantLock getLock() {
+        return playerLock;
     }
 
     public void printInventory() {
