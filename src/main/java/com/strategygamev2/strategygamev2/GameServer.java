@@ -4,7 +4,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class GameServer {
-    private static final int MAX_PLAYERS = 4;
+    private static final int MAX_PLAYERS = 6;
     private static final int MAP_SIZE = 10;
     private final ExecutorService playerPool;
     private final GameHandler gameHandler;

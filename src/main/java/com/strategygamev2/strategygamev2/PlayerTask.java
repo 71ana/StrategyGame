@@ -1,5 +1,6 @@
 package com.strategygamev2.strategygamev2;
 
+import java.util.Objects;
 import java.util.Random;
 
 public class PlayerTask implements Runnable {
@@ -15,7 +16,7 @@ public class PlayerTask implements Runnable {
     @Override
     public void run() {
         // Move the player in a random direction
-        int newX = player.getX() + random.nextInt(3) - 1;
+        /*int newX = player.getX() + random.nextInt(3) - 1;
         int newY = player.getY() + random.nextInt(3) - 1;
 
         gameHandler.movePlayer(player, newX, newY);
@@ -23,6 +24,19 @@ public class PlayerTask implements Runnable {
         // Check if the player can build a house
         if (player.canBuildHouse()) {
             gameHandler.buildHouse(player);
+        */
+
+        if (!player.getState().equals("wait"))
+        {
+            // Move the player in a random direction
+            int newX = player.getX() + random.nextInt(3) - 1;
+            int newY = player.getY() + random.nextInt(3) - 1;
+            gameHandler.movePlayer(player, newX, newY);
+
+            // Check if the player can build a house
+            if (player.canBuildHouse()) {
+                gameHandler.buildHouse(player);
+            }
         }
     }
 }
