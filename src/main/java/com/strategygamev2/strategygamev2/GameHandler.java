@@ -73,7 +73,7 @@ public class GameHandler {
         try {
             player.buildHouse();
             System.out.println(player.getPlayerName() + " built a house. Total houses: " + player.getHousesBuilt());
-            if (player.getHousesBuilt() >= 2) {
+            if (player.getHousesBuilt() >= 5) {
                 winner.set(player); //the player who built 5 houses is assigned as the winner
                 respawnResourceExecutor.shutdownNow(); //stop respawning resources once we found a winner
             }

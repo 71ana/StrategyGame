@@ -76,7 +76,7 @@ public class Player {
     }
 
     public void tradeResources(String resourceToGive, String resourceToReceive, int amountToGive, int amountToReceive) {
-        inventory.put(resourceToGive, inventory.get(resourceToGive) - amountToGive + 1);
+        inventory.put(resourceToGive, inventory.get(resourceToGive) - amountToGive);
         inventory.put(resourceToReceive, inventory.get(resourceToReceive) + amountToReceive);
     }
 
