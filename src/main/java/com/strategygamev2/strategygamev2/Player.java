@@ -9,8 +9,6 @@ public class Player {
     private int x, y;
     private final HashMap<String, Integer> inventory;
     private int housesBuilt = 0;
-    private final Lock lock = new ReentrantLock();
-    private final ReentrantLock playerLock = new ReentrantLock();
     private String state;
 
     public Player(String playerName, int x, int y) {
