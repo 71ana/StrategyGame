@@ -1,23 +1,16 @@
 <?php
-// players.php
-
-// URL-ul API-ului pentru a obține lista de jucători
 $apiUrl = "http://localhost:8080/players";
 
-// Inițializare curl
 $ch = curl_init($apiUrl);
 
 // Configurarea cererii curl
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPGET, true);
 
-// Executarea cererii și obținerea răspunsului
 $response = curl_exec($ch);
 
-// Închidere curl
 curl_close($ch);
 
-// Decodare răspuns JSON
 $players = json_decode($response, true);
 ?>
 
@@ -91,7 +84,6 @@ $players = json_decode($response, true);
             font-weight: bold;
         }
 
-        /* Stiluri pentru butoane și alte elemente opționale */
         .button {
             background-color: #3498db;
             color: white;
@@ -126,8 +118,7 @@ $players = json_decode($response, true);
                     <td><?= $player['playerName'] ?></td>
                     <td>(<?= $player['x'] ?>, <?= $player['y'] ?>)</td>
 	<td>
-    <?php 
-        // Verificăm dacă există un inventar și îl afișăm
+    <?php
         if (!empty($player['inventory'])):
             echo "<ul>"; 
             foreach ($player['inventory'] as $item => $quantity): 
@@ -143,7 +134,6 @@ $players = json_decode($response, true);
                     $resourceName = 'Unknown Resource'; // Opțional pentru resurse neidentificate
                 }
 
-                // Afișăm numele resursei și cantitatea
                 echo "<li>" . htmlspecialchars($resourceName) . ": " . htmlspecialchars($quantity) . "</li>";
             endforeach;
             echo "</ul>";
