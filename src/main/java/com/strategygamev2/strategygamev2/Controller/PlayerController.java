@@ -6,6 +6,8 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -62,9 +64,21 @@ public class PlayerController {
         return playerService.buildHouse(playerId);
     }
 
+    @Operation(summary = "Delete a player", description = "Remove a player by their ID.")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deletePlayer(@PathVariable Long id) {
+        boolean isDeleted = playerService.deletePlayer(id);
+        if (isDeleted) {
+            return ResponseEntity.ok("Player deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Player not found.");
+        }
+    }
+
+
     @Operation(description = "Check the winner", summary = "Check if a player has won the game.")
-    @GetMapping("/winner")
-    public Player checkWinner() {
+    @PostMapping("/winner")
+    public Player gotWinner(@RequestParam Player winner) {
         return playerService.checkWinner();
     }
 

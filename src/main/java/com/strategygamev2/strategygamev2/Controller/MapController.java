@@ -12,7 +12,7 @@ import java.util.List;
 
 @Tag(name = "Map Operations", description = "Operations related to the game map.")
 @RestController
-
+@RequestMapping("/map")
 public class MapController {
 
     @Autowired

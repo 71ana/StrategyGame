@@ -4,13 +4,13 @@ import com.strategygamev2.strategygamev2.Model.MapCell;
 import com.strategygamev2.strategygamev2.Model.Player;
 import com.strategygamev2.strategygamev2.Repository.MapCellRepository;
 import com.strategygamev2.strategygamev2.Repository.PlayerRepository;
-import org.hibernate.collection.spi.AbstractPersistentCollection;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -22,7 +22,15 @@ public class PlayerService {
     @Autowired
     private MapCellRepository mapCellRepository;
     private final Lock lock = new ReentrantLock();
-    private AtomicReference<Player> winner;
+    private AtomicReference<Player> winner = new AtomicReference<>();
+
+    @Value("${webhook.url}")
+    private String webHookUrl;
+
+    private void notifyWinner(Player player) {
+        RestTemplate restTemplate = new RestTemplate();
+        restTemplate.postForEntity(webHookUrl, player, Void.class);
+    }
 
     // Constants for building a house
     private static final int WOOD_REQUIRED = 4;
@@ -118,6 +126,17 @@ public class PlayerService {
         return playerRepository.save(player);
     }
 
+    public boolean deletePlayer(Long id) {
+        Optional<Player> playerOptional = playerRepository.findById(id);
+        if (playerOptional.isPresent()) {
+            playerRepository.deleteById(id);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+
     public void addResource(Player player, String resource) {
         // Update the player's inventory
         player.getInventory().merge(resource, 1, Integer::sum); // Add 1 unit of the resource
@@ -207,6 +226,8 @@ public class PlayerService {
 
                 // Check if the player has won
                 if (player.getHousesBuilt() >= 5) {
+                    winner.set(player);
+                    notifyWinner(player);
                     return player.getPlayerName() + " has won the game!";
                 }
                 return player.getPlayerName() + " built a house. Total houses: " + player.getHousesBuilt();
@@ -215,6 +236,8 @@ public class PlayerService {
             }
         }
     }
+
+
 
     public Player checkWinner() {
         List<Player> players = playerRepository.findAll();
