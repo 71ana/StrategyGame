@@ -64,17 +64,12 @@ public class PlayerController {
         return playerService.buildHouse(playerId);
     }
 
-    @Operation(summary = "Delete a player", description = "Remove a player by their ID.")
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deletePlayer(@PathVariable Long id) {
-        boolean isDeleted = playerService.deletePlayer(id);
-        if (isDeleted) {
-            return ResponseEntity.ok("Player deleted successfully.");
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Player not found.");
-        }
+    @Operation(summary = "Delete player session", description = "Removes a player from the game.")
+    @DeleteMapping("/{id}/logout")
+    public ResponseEntity<Void> logoutPlayer(@PathVariable Long id) {
+        playerService.deletePlayer(id);
+        return ResponseEntity.noContent().build();
     }
-
 
     @Operation(description = "Check the winner", summary = "Check if a player has won the game.")
     @PostMapping("/winner")

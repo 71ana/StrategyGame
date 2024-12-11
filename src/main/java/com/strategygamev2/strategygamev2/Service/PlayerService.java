@@ -126,15 +126,15 @@ public class PlayerService {
         return playerRepository.save(player);
     }
 
-    public boolean deletePlayer(Long id) {
-        Optional<Player> playerOptional = playerRepository.findById(id);
-        if (playerOptional.isPresent()) {
-            playerRepository.deleteById(id);
-            return true;
+    public void deletePlayer(Long playerId) {
+        Optional<Player> player = playerRepository.findById(playerId);
+        if (player.isPresent()) {
+            playerRepository.delete(player.get());
         } else {
-            return false;
+            throw new IllegalArgumentException("Player not found");
         }
     }
+
 
 
     public void addResource(Player player, String resource) {
