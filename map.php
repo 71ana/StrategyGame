@@ -32,26 +32,16 @@ if (!$playerId || $playerX === null || $playerY === null) {
     exit();
 }
 
-function fetchMapData() {
-    $apiUrlMap = "http://localhost:8080/map";
-    $ch = curl_init($apiUrlMap);
+function fetchData($url) {
+    $ch = curl_init($url);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $responseMap = curl_exec($ch);
+    $response = curl_exec($ch);
     curl_close($ch);
-    return json_decode($responseMap, true);
+    return json_decode($response, true);
 }
 
-function fetchPlayersData() {
-    $apiUrlPlayers = "http://localhost:8080/players";
-    $ch = curl_init($apiUrlPlayers);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    $responsePlayers = curl_exec($ch);
-    curl_close($ch);
-    return json_decode($responsePlayers, true);
-}
-
-$map = fetchMapData();
-$players = fetchPlayersData();
+$map = fetchData("http://localhost:8080/map");
+$players = fetchData("http://localhost:8080/players");
 
 if (!$map || !is_array($map)) {
     die("Failed to fetch or parse the game map.");
@@ -62,6 +52,23 @@ if (!$players || !is_array($players)) {
 }
 
 $mapSize = 10;
+
+function fetchPlayerDetails($playerId) {
+    $apiUrl = "http://localhost:8080/players/{$playerId}";
+    $ch = curl_init($apiUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    curl_close($ch);
+    return json_decode($response, true);
+}
+
+$playerDetails = fetchPlayerDetails($playerId);
+
+if (!$playerDetails || !is_array($playerDetails)) {
+    die("Failed to fetch player details.");
+}
+
+$inventory = $playerDetails['inventory'] ?? [];
 
 function getCellContent($x, $y, $players) {
     $content = '';
@@ -78,7 +85,13 @@ function getCellContent($x, $y, $players) {
     return $content;
 }
 
-function getCellColorClass($x, $y, $playerX, $playerY) {
+function getCellColorClass($x, $y, $playerX, $playerY, $players) {
+    foreach ($players as $player) {
+        if ($player['x'] == $x && $player['y'] == $y && $player['id'] != $_SESSION['playerId']) {
+            return 'enemy';
+        }
+    }
+
     if ($x == $playerX && $y == $playerY) {
         return 'highlight';
     }
@@ -92,16 +105,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_exec($ch);
         curl_close($ch);
 
-        if ($httpCode === 200) {
-            $map = fetchMapData();
-            echo "<p>Resource collected successfully!</p>";
-        } else {
-            echo "<p>Failed to collect resource. HTTP Code: $httpCode</p>";
-        }
+        $map = fetchData("http://localhost:8080/map");
     } elseif (isset($_POST['move'])) {
         $newX = intval($_POST['x']);
         $newY = intval($_POST['y']);
@@ -111,22 +118,50 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch, CURLOPT_POST, true);
         curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
-        $response = curl_exec($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_exec($ch);
         curl_close($ch);
-
-        if ($httpCode !== 200) {
-            echo "<p>Error moving player!</p>";
-            echo "<p>HTTP Code: {$httpCode}</p>";
-            echo "<p>Server Response: {$response}</p>";
-            exit();
-        }
 
         $_SESSION['playerX'] = $newX;
         $_SESSION['playerY'] = $newY;
 
         header("Location: map.php");
         exit();
+    } elseif (isset($_POST['build'])) {
+        $apiUrl = "http://localhost:8080/players/build-house/{$playerId}";
+        $ch = curl_init($apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            echo "<p>House built successfully!</p>";
+        } else {
+            echo "<p>Failed to build house. HTTP Code: $httpCode</p>";
+        }
+    } elseif (isset($_POST['trade'])) {
+        $targetPlayerId = intval($_POST['targetPlayerId']);
+        $resourceToGive = $_POST['resourceToGive'];
+        $quantityToGive = intval($_POST['quantityToGive']);
+        $resourceToReceive = $_POST['resourceToReceive'];
+        $quantityToReceive = intval($_POST['quantityToReceive']);
+
+        $apiUrl = "http://localhost:8080/players/{$playerId}/trade?targetPlayerId={$targetPlayerId}&resourceToGive={$resourceToGive}&quantityToGive={$quantityToGive}&resourceToReceive={$resourceToReceive}&quantityToReceive={$quantityToReceive}";
+        $ch = curl_init($apiUrl);
+        curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch, CURLOPT_POST, true);
+        curl_setopt($ch, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+        $response = curl_exec($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($httpCode === 200) {
+            echo "<p>Trade successful!</p>";
+        } else {
+            echo "<p>Failed to trade. HTTP Code: $httpCode</p>";
+        }
     }
 }
 ?>
@@ -260,8 +295,57 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             display: block;
             text-align: center;
         }
+
+        table.map td.enemy {
+            background-color: red;
+            color: white;
+        }
+
+        .inventory {
+            margin: 20px auto;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.7); /* Slightly darker and more opaque background */
+            color: #fff; /* Text in white for better visibility */
+            border-radius: 15px; /* Smooth, rounded corners */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Soft shadow */
+            width: 20%;
+            text-align: center;
+        }
+
+        .inventory h2 {
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 4px black; /* Title shadow for better contrast */
+            color: #f0f0f0;
+        }
+
+        .inventory ul {
+            list-style: none; /* Removes default bullets */
+            padding: 0;
+            margin: 0;
+        }
+
+        .inventory li {
+            display: flex;
+            justify-content: space-between; /* Align item names and quantities */
+            padding: 10px 20px;
+            margin: 5px 0;
+            background-color: rgba(255, 255, 255, 0.2); /* Light contrast on list items */
+            border-radius: 10px;
+            font-size: 1.1rem;
+        }
+
+        .inventory li strong {
+            color: #ffcc00; /* Highlight the item names */
+            font-weight: bold;
+        }
+
+
+
     </style>
 </head>
+
+
 <body>
 <h1>Game Map</h1>
 <table class="map">
@@ -270,11 +354,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             <?php for ($col = 0; $col < $mapSize; $col++):
                 $cell = array_filter($map, fn($c) => $c['x'] == $col && $c['y'] == $row);
                 $cell = reset($cell);
-                $cellColorClass = getCellColorClass($col, $row, $playerX, $playerY);
+                $cellColorClass = getCellColorClass($col, $row, $playerX, $playerY, $players);
                 $cellContent = getCellContent($col, $row, $players); ?>
                 <td class="<?= $cellColorClass ?>">
                     <p>(<?= $col ?>, <?= $row ?>)</p>
-                    <p><?= $cell['resource'] ?? 'None' ?></p>
+                    <p><?= $cell['resource'] ?? '' ?></p>
                     <p><?= $cellContent ?></p>
                 </td>
             <?php endfor; ?>
@@ -282,19 +366,49 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <?php endfor; ?>
 </table>
 
-<form method="POST" action="map.php">
+<div class="inventory">
+    <h2>Your Inventory</h2>
+    <?php if (!empty($inventory)): ?>
+        <ul>
+            <?php foreach ($inventory as $item => $quantity): ?>
+                <li>
+                    <strong><?= htmlspecialchars(ucfirst($item)) ?>:</strong>
+                    <span><?= htmlspecialchars($quantity) ?></span>
+                </li>
+            <?php endforeach; ?>
+        </ul>
+    <?php else: ?>
+        <p>Your inventory is empty.</p>
+    <?php endif; ?>
+</div>
+
+
+
+<form method="POST">
     <button type="submit" name="collect" class="collect-button">Collect Resource</button>
 </form>
 
-<form method="POST" action="map.php">
+<form method="POST">
+    <button type="submit" name="build" class="collect-button">Build House</button>
+</form>
+
+<form method="POST">
     <input type="number" name="x" placeholder="New X Coordinate" required>
     <input type="number" name="y" placeholder="New Y Coordinate" required>
     <button type="submit" name="move" class="collect-button">Move</button>
 </form>
 
-<form method="GET" action="map.php">
-    <button type="submit" name="logout" class="logout-button">Logout</button>
+<form method="POST">
+    <input type="number" name="targetPlayerId" placeholder="Target Player ID" required>
+    <input type="text" name="resourceToGive" placeholder="Resource to Give" required>
+    <input type="number" name="quantityToGive" placeholder="Quantity to Give" required>
+    <input type="text" name="resourceToReceive" placeholder="Resource to Receive" required>
+    <input type="number" name="quantityToReceive" placeholder="Quantity to Receive" required>
+    <button type="submit" name="trade" class="collect-button">Trade</button>
 </form>
 
+<form method="GET">
+    <button type="submit" name="logout" class="logout-button">Logout</button>
+</form>
 </body>
 </html>

@@ -3,7 +3,6 @@ $apiUrl = "http://localhost:8080/players";
 
 $ch = curl_init($apiUrl);
 
-// Configurarea cererii curl
 curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
 curl_setopt($ch, CURLOPT_HTTPGET, true);
 
@@ -104,7 +103,7 @@ $players = json_decode($response, true);
 <body>
 <center>
     <div>
-        <h1>Lista Jucătorilor</h1>
+        <h1>Players</h1>
         <table>
             <tr>
                 <th>ID</th>
@@ -121,8 +120,7 @@ $players = json_decode($response, true);
     <?php
         if (!empty($player['inventory'])):
             echo "<ul>"; 
-            foreach ($player['inventory'] as $item => $quantity): 
-                // Hardcodăm etichetele resurselor
+            foreach ($player['inventory'] as $item => $quantity):
                 $resourceName = '';
                 if ($item === 'wood') {
                     $resourceName = 'Wood';

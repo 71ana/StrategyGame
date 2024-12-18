@@ -33,9 +33,9 @@ public class PlayerService {
     }
 
     // Constants for building a house
-    private static final int WOOD_REQUIRED = 4;
-    private static final int STONE_REQUIRED = 3;
-    private static final int BRICK_REQUIRED = 2;
+    private static final int WOOD_REQUIRED = 1;
+    private static final int STONE_REQUIRED = 1;
+    private static final int BRICK_REQUIRED = 1;
 
     public Player createPlayer(String name, int x, int y) {
         // Check if the map cell is available
