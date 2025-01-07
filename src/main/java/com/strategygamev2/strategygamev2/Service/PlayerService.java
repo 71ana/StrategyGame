@@ -40,7 +40,15 @@ public class PlayerService {
     private static final int BRICK_REQUIRED = 1;
 
     public Player createPlayer(String name, int x, int y) {
-        // Check if the map cell is available
+        // Check if a player with the given name already exists
+        Optional<Player> existingPlayer = playerRepository.findByPlayerName(name);
+
+        if (existingPlayer.isPresent()) {
+            // Return the existing player without modifying its state or map cell
+            return existingPlayer.get();
+        }
+
+        // If the player doesn't exist, create a new one
         MapCell cell = mapCellRepository.findByXAndY(x, y);
         if (cell == null) {
             throw new IllegalArgumentException("Invalid position: The specified map cell does not exist.");
@@ -49,15 +57,14 @@ public class PlayerService {
             throw new IllegalStateException("Cell already occupied by another player.");
         }
 
-        // Create the player
-        Player player = new Player(name, x, y);
-        player = playerRepository.save(player); // Save the player in the DB
+        Player newPlayer = new Player(name, x, y);
+        newPlayer = playerRepository.save(newPlayer); // Save the new player to the database
 
-        // Mark the map cell as occupied by this player
-        cell.setPlayer(player);
+        // Associate the map cell with the new player
+        cell.setPlayer(newPlayer);
         mapCellRepository.save(cell);
 
-        return player;
+        return newPlayer;
     }
 
     public Player movePlayer(Long playerId, int newX, int newY) {

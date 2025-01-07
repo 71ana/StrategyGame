@@ -11,7 +11,7 @@ h1 {
 
 table.map {
     margin: 20px auto;
-    border-collapse: collapse; /* Elimină spațiile dintre celule */
+    border-collapse: collapse;
 }
 
 table.map td {
@@ -20,7 +20,7 @@ table.map td {
     border: 1px solid #ccc;
     text-align: center;
     vertical-align: middle;
-    color: white; /* text color for better visibility */
+    color: white;
 }
 
 table.map td p {
@@ -30,5 +30,5 @@ table.map td p {
 }
 
 table.map td:nth-child(odd) {
-    color: white; /* Set text color for odd cells to black */
+    color: white;
 }

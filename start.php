@@ -11,9 +11,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $x = $_POST['x'];
     $y = $_POST['y'];
 
-    // Call the API to create a player
-    $apiUrl = "http://localhost:8080/players/create?playerName={$playerName}&x={$x}&y={$y}";
-    $ch = curl_init($apiUrl);
+    // Step 1: Check if a player with the same name exists
+    $checkUrl = "http://localhost:8080/players/by-name?playerName={$playerName}";
+    $ch = curl_init($checkUrl);
+    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+    $response = curl_exec($ch);
+    $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+
+    if ($httpCode === 200) {
+        // Player exists, decode the response
+        $player = json_decode($response, true);
+        if (isset($player['id'])) {
+            // Log in as existing player
+            $_SESSION['playerId'] = $player['id'];
+            $_SESSION['playerX'] = $player['x'];
+            $_SESSION['playerY'] = $player['y'];
+
+            // Redirect to map.php
+            header("Location: map.php");
+            exit();
+        }
+    }
+
+    // Step 2: If player does not exist, create a new one
+    $createUrl = "http://localhost:8080/players/create?playerName={$playerName}&x={$x}&y={$y}";
+    $ch = curl_init($createUrl);
     curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
     curl_setopt($ch, CURLOPT_POST, true); // POST request
     $response = curl_exec($ch);

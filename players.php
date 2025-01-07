@@ -20,13 +20,12 @@ $players = json_decode($response, true);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jucători</title>
     <style>
-        /* Stiluri CSS */
         body {
             font-family: Arial, sans-serif;
-            background-image: url('fundal.jpg'); /* Calea către imaginea ta */
-            background-size: cover; /* Imaginea va acoperi întreaga pagină */
-            background-position: center center; /* Imaginea va fi centrată pe pagină */
-            background-attachment: fixed; /* Imaginea va rămâne fixă în fundal când derulezi pagina */
+            background-image: url('fundal.jpg');
+            background-size: cover;
+            background-position: center center;
+            background-attachment: fixed;
             font-family: 'Arial', sans-serif;
             background-color: #f4f4f9;
             margin: 0;
@@ -101,7 +100,6 @@ $players = json_decode($response, true);
     </style>
 </head>
 <body>
-<center>
     <div>
         <h1>Players</h1>
         <table>
@@ -109,7 +107,7 @@ $players = json_decode($response, true);
                 <th>ID</th>
                 <th>Nume</th>
                 <th>Poziție</th>
-                <th>Inventar</th> <!-- Coloană pentru inventar -->
+                <th>Inventar</th> <!-- Coloana pentru inventar -->
             </tr>
             <?php foreach ($players as $player): ?>
                 <tr>
@@ -129,7 +127,7 @@ $players = json_decode($response, true);
                 } elseif ($item === 'brick') {
                     $resourceName = 'Brick';
                 } else {
-                    $resourceName = 'Unknown Resource'; // Opțional pentru resurse neidentificate
+                    $resourceName = 'Unknown Resource'; // Optional pentru resurse neidentificate
                 }
 
                 echo "<li>" . htmlspecialchars($resourceName) . ": " . htmlspecialchars($quantity) . "</li>";
@@ -145,6 +143,5 @@ $players = json_decode($response, true);
             <?php endforeach; ?>
         </table>
     </div>
-</center>
 </body>
 </html>

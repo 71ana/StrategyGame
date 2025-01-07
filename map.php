@@ -153,9 +153,99 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         if ($httpCode === 200) {
             $playerDetails = fetchPlayerDetails($playerId);
             $inventory = $playerDetails['inventory'] ?? [];
-            echo "<p>House built successfully!</p>";
+            echo "
+    <div id='success-popup' class='popup'>
+        <div class='popup-content'>
+            <span class='close-btn' onclick='closePopup()'>&times;</span>
+            <p>Failed to build house. Not enough resources!</p>
+        </div>
+    </div>
+    <script>
+        function closePopup() {
+            document.getElementById('success-popup').style.display = 'none';
+        }
+    </script>
+    <style>
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: Black;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: red;
+        }
+    </style>
+    ";
         } else {
-            echo "<p>Failed to build house. HTTP Code: $httpCode</p>";
+            echo "
+    <div id='success-popup' class='popup'>
+        <div class='popup-content'>
+            <span class='close-btn' onclick='closePopup()'>&times;</span>
+            <p>House built successfully!</p>
+        </div>
+    </div>
+    <script>
+        function closePopup() {
+            document.getElementById('success-popup').style.display = 'none';
+        }
+    </script>
+    <style>
+        .popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .popup-content {
+            background-color: Black;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            text-align: center;
+            position: relative;
+        }
+        .close-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close-btn:hover {
+            color: red;
+        }
+    </style>
+    ";
         }
     } elseif (isset($_POST['trade'])) {
         $targetPlayerId = intval($_POST['targetPlayerId']);
@@ -389,72 +479,72 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <body>
 <h1>Game Map</h1>
 <div class="container">
-<table class="map">
-    <?php for ($row = 0; $row < $mapSize; $row++): ?>
-        <tr>
-            <?php for ($col = 0; $col < $mapSize; $col++):
-                $cell = array_filter($map, fn($c) => $c['x'] == $col && $c['y'] == $row);
-                $cell = reset($cell);
-                $cellColorClass = getCellColorClass($col, $row, $playerX, $playerY, $players);
-                $cellContent = getCellContent($col, $row, $players); ?>
-                <td class="<?= $cellColorClass ?>">
-                    <p>(<?= $row ?>, <?= $col ?>)</p>
-                    <p><?= $cell['resource'] ?? '' ?></p>
-                    <p><?= $cellContent ?></p>
-                </td>
-            <?php endfor; ?>
-        </tr>
-    <?php endfor; ?>
-</table>
+    <table class="map">
+        <?php for ($row = 0; $row < $mapSize; $row++): ?>
+            <tr>
+                <?php for ($col = 0; $col < $mapSize; $col++):
+                    $cell = array_filter($map, fn($c) => $c['x'] == $col && $c['y'] == $row);
+                    $cell = reset($cell);
+                    $cellColorClass = getCellColorClass($col, $row, $playerX, $playerY, $players);
+                    $cellContent = getCellContent($col, $row, $players); ?>
+                    <td class="<?= $cellColorClass ?>">
+                        <p>(<?= $row ?>, <?= $col ?>)</p>
+                        <p><?= $cell['resource'] ?? '' ?></p>
+                        <p><?= $cellContent ?></p>
+                    </td>
+                <?php endfor; ?>
+            </tr>
+        <?php endfor; ?>
+    </table>
 
-<div class="inventory">
-    <h2>Your Inventory</h2>
-    <?php if (!empty($inventory)): ?>
-        <ul>
-            <?php foreach ($inventory as $item => $quantity): ?>
-                <li>
-                    <strong><?= htmlspecialchars(ucfirst($item)) ?>:</strong>
-                    <span><?= htmlspecialchars($quantity) ?></span>
-                </li>
-            <?php endforeach; ?>
-        </ul>
-    <?php else: ?>
-        <p>Your inventory is empty.</p>
-    <?php endif; ?>
-</div>
+    <div class="inventory">
+        <h2>Your Inventory</h2>
+        <?php if (!empty($inventory)): ?>
+            <ul>
+                <?php foreach ($inventory as $item => $quantity): ?>
+                    <li>
+                        <strong><?= htmlspecialchars(ucfirst($item)) ?>:</strong>
+                        <span><?= htmlspecialchars($quantity) ?></span>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php else: ?>
+            <p>Your inventory is empty.</p>
+        <?php endif; ?>
+    </div>
 
-
-<div class="buttons-group">
-<form method="POST">
-    <button type="submit" name="collect" class="collect-button">Collect Resource</button>
-</form>
-
-<form method="POST">
-    <button type="submit" name="build" class="collect-button">Build House</button>
-</form>
-
-<form method="POST">
-    <input type="number" name="x" placeholder="New X Coordinate" required>
-    <input type="number" name="y" placeholder="New Y Coordinate" required>
-    <button type="submit" name="move" class="collect-button">Move</button>
-</form>
-</div>
 
     <div class="buttons-group">
-<form method="POST">
-    <input type="number" name="targetPlayerId" placeholder="Target Player ID" required>
-    <input type="text" name="resourceToGive" placeholder="Resource to Give" required>
-    <input type="number" name="quantityToGive" placeholder="Quantity to Give" required>
-    <input type="text" name="resourceToReceive" placeholder="Resource to Receive" required>
-    <input type="number" name="quantityToReceive" placeholder="Quantity to Receive" required>
-    <button type="submit" name="trade" class="collect-button">Trade</button>
-</form>
+        <form method="POST">
+            <button type="submit" name="collect" class="collect-button">Collect Resource</button>
+        </form>
 
-<form method="GET">
-    <button type="submit" name="logout" class="logout-button">Logout</button>
-</form>
+        <form method="POST">
+            <button type="submit" name="build" class="collect-button">Build House</button>
+        </form>
 
-</div>
+        <form method="POST">
+            <input type="number" name="y" placeholder="New X Coordinate" required>
+            <input type="number" name="x" placeholder="New Y Coordinate" required>
+            <button type="submit" name="move" class="collect-button">Move</button>
+        </form>
+    </div>
+
+    <div class="buttons-group">
+        <form method="POST">
+            <input type="number" name="targetPlayerId" placeholder="Target Player ID" required>
+            <input type="text" name="resourceToGive" placeholder="Resource to Give" required>
+            <input type="number" name="quantityToGive" placeholder="Quantity to Give" required>
+            <input type="text" name="resourceToReceive" placeholder="Resource to Receive" required>
+            <input type="number" name="quantityToReceive" placeholder="Quantity to Receive" required>
+            <button type="submit" name="trade" class="collect-button">Trade</button>
+        </form>
+
+        <form method="GET">
+            <button type="submit" name="logout" class="logout-button">Logout</button>
+        </form>
+
+    </div>
 </div>
 </body>
 </html>
