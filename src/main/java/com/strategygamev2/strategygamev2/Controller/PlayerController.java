@@ -77,6 +77,12 @@ public class PlayerController {
         return playerService.checkWinner();
     }
 
+    @PostMapping("/end-game")
+    public ResponseEntity<String> endGame() {
+        String result = playerService.endGame();
+        return ResponseEntity.ok(result);
+    }
+
     @Operation(description = "Get all players", summary = "Retrieve a list of all players.")
     @GetMapping
     public List<Player> getAllPlayers() {

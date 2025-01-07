@@ -28,8 +28,10 @@ public class PlayerService {
     private String webHookUrl;
 
     private void notifyWinner(Player player) {
+        String message = "Game Over! The winner is: " + player.getPlayerName();
+
         RestTemplate restTemplate = new RestTemplate();
-        restTemplate.postForEntity(webHookUrl, player, Void.class);
+        restTemplate.postForEntity(webHookUrl, message, String.class);
     }
 
     // Constants for building a house
@@ -59,42 +61,47 @@ public class PlayerService {
     }
 
     public Player movePlayer(Long playerId, int newX, int newY) {
-        Player player = playerRepository.findById(playerId)
-                .orElseThrow(() -> new RuntimeException("Player not found"));
+        lock.lock();
+        try {
+            Player player = playerRepository.findById(playerId)
+                    .orElseThrow(() -> new RuntimeException("Player not found"));
 
-        if (!canPlayerMove(player))
-            return null;
+            if (!canPlayerMove(player))
+                return null;
 
-        int currentX = player.getX();
-        int currentY = player.getY();
+            int currentX = player.getX();
+            int currentY = player.getY();
 
-        //Checking if the move is valid or not
-        if (Math.abs(newX - currentX) > 1 || Math.abs(newY - currentY) > 1) {
-            throw new IllegalArgumentException("Invalid move. You can only move one step at a time.");
+            //Checking if the move is valid or not
+            if (Math.abs(newX - currentX) > 1 || Math.abs(newY - currentY) > 1) {
+                throw new IllegalArgumentException("Invalid move. You can only move one step at a time.");
+            }
+
+            // Fetch the current and target map cells
+            MapCell currentCell = mapCellRepository.findByXAndY(currentX, currentY);
+            MapCell targetCell = mapCellRepository.findByXAndY(newX, newY);
+
+            if (targetCell == null || targetCell.getPlayer() != null) {
+                throw new IllegalStateException("Target cell is invalid or already occupied.");
+            }
+
+            // Update the player's position
+            player.setX(newX);
+            player.setY(newY);
+            playerRepository.save(player);
+
+            // Update map cells
+            if (currentCell != null) {
+                currentCell.setPlayer(null); // Clear the current cell
+                mapCellRepository.save(currentCell);
+            }
+            targetCell.setPlayer(player); // Mark the new cell
+            mapCellRepository.save(targetCell);
+
+            return player;
+        } finally {
+            lock.unlock();
         }
-
-        // Fetch the current and target map cells
-        MapCell currentCell = mapCellRepository.findByXAndY(currentX, currentY);
-        MapCell targetCell = mapCellRepository.findByXAndY(newX, newY);
-
-        if (targetCell == null || targetCell.getPlayer() != null) {
-            throw new IllegalStateException("Target cell is invalid or already occupied.");
-        }
-
-        // Update the player's position
-        player.setX(newX);
-        player.setY(newY);
-        playerRepository.save(player);
-
-        // Update map cells
-        if (currentCell != null) {
-            currentCell.setPlayer(null); // Clear the current cell
-            mapCellRepository.save(currentCell);
-        }
-        targetCell.setPlayer(player); // Mark the new cell
-        mapCellRepository.save(targetCell);
-
-        return player;
     }
 
     public Player getPlayerById(Long id) {
@@ -142,26 +149,35 @@ public class PlayerService {
         player.getInventory().merge(resource, 1, Integer::sum); // Add 1 unit of the resource
     }
 
+    private boolean validateTrade(Player player1, Player player2, String resourceToGive, int quantityToGive,
+                                  String resourceToReceive, int quantityToReceive) {
+        if (!arePlayersAdjacent(player1, player2)) {
+            return false;
+        }
+        if (!hasEnoughResources(player1, resourceToGive, quantityToGive) ||
+                !hasEnoughResources(player2, resourceToReceive, quantityToReceive)) {
+            return false;
+        }
+        return true;
+    }
+
+
     public String trade(Long playerId, Long targetPlayerId, String resourceToGive, int quantityToGive,
                         String resourceToReceive, int quantityToReceive) {
-        lock.lock(); // Ensure thread safety during trade
+        lock.lock();
+        Player player1 = playerRepository.findById(playerId)
+                .orElseThrow(() -> new RuntimeException("Player not found"));
+        Player player2 = playerRepository.findById(targetPlayerId)
+                .orElseThrow(() -> new RuntimeException("Target Player not found"));
+
         try {
-            // Fetch both players
-            Player player1 = playerRepository.findById(playerId)
-                    .orElseThrow(() -> new RuntimeException("Player not found"));
-            Player player2 = playerRepository.findById(targetPlayerId)
-                    .orElseThrow(() -> new RuntimeException("Target Player not found"));
             player1.setState("wait");
             player2.setState("wait");
+            playerRepository.save(player1);
+            playerRepository.save(player2);
 
-            if (!arePlayersAdjacent(player1, player2)) {
-                return "Players are not adjacent!";
-            }
-
-            // Check if players have sufficient resources
-            if (!hasEnoughResources(player1, resourceToGive, quantityToGive) ||
-                    !hasEnoughResources(player2, resourceToReceive, quantityToReceive)) {
-                return ("One of the players does not have enough resources for the trade.");
+            if (!validateTrade(player1, player2, resourceToGive, quantityToGive, resourceToReceive, quantityToReceive)) {
+                return "Trade validation failed. Check resource availability or player positions.";
             }
 
             // Perform the trade
@@ -170,18 +186,23 @@ public class PlayerService {
             updateResources(player2, resourceToGive, quantityToGive);
             updateResources(player2, resourceToReceive, -quantityToReceive);
 
-            // Save updated players
             playerRepository.save(player1);
             playerRepository.save(player2);
 
+            return "Trade successful between " + player1.getPlayerName() + " and " + player2.getPlayerName();
+        } catch (Exception e) {
+            System.err.println("Error during trade: " + e.getMessage());
+            throw e; // Rethrow exception after logging
+        } finally {
             player1.setState("free");
             player2.setState("free");
-
-            return "Trade successful between " + player1.getPlayerName() + " and " + player2.getPlayerName();
-        } finally {
+            playerRepository.save(player1);
+            playerRepository.save(player2);
             lock.unlock();
         }
     }
+
+
 
     private boolean hasEnoughResources(Player player, String resource, int quantity) {
         return player.getInventory().getOrDefault(resource, 0) >= quantity;
@@ -225,7 +246,7 @@ public class PlayerService {
                 playerRepository.save(player);
 
                 // Check if the player has won
-                if (player.getHousesBuilt() >= 5) {
+                if (player.getHousesBuilt() >= 1) {
                     winner.set(player);
                     notifyWinner(player);
                     return player.getPlayerName() + " has won the game!";
@@ -243,11 +264,29 @@ public class PlayerService {
         List<Player> players = playerRepository.findAll();
 
         for (Player player : players) {
-            if (player.getHousesBuilt() >= 5) {
+            if (player.getHousesBuilt() >= 1) {
                 return player;
             }
         }
         return null;
     }
 
+    public void deleteAllPlayers() {
+        playerRepository.deleteAll();
+    }
+
+    public String endGame() {
+        lock.lock();
+        try {
+            Player winner = checkWinner();
+            if (winner != null) {
+                notifyWinner(winner);  // Notify all players about the winner
+                deleteAllPlayers();   // Remove all players from the game
+                return "Game Over! Winner: " + winner.getPlayerName();
+            }
+            return "No winner found.";
+        } finally {
+            lock.unlock();
+        }
+    }
 }

@@ -1,7 +1,17 @@
 <?php
 session_start();
 
+$timeout = 600;
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $timeout)) {
+    logout();
+}
+$_SESSION['last_activity'] = time();
+
 if (isset($_GET['logout'])) {
+    logout();
+}
+
+function logout() {
     $playerId = $_SESSION['playerId'] ?? null;
 
     if ($playerId) {
@@ -108,6 +118,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         curl_exec($ch);
         curl_close($ch);
 
+        $playerDetails = fetchPlayerDetails($playerId);
+        $inventory = $playerDetails['inventory'] ?? [];
+
         $map = fetchData("http://localhost:8080/map");
     } elseif (isset($_POST['move'])) {
         $newX = intval($_POST['x']);
@@ -125,6 +138,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $_SESSION['playerY'] = $newY;
 
         header("Location: map.php");
+        $map = fetchData("http://localhost:8080/map");
         exit();
     } elseif (isset($_POST['build'])) {
         $apiUrl = "http://localhost:8080/players/build-house/{$playerId}";
@@ -137,6 +151,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         curl_close($ch);
 
         if ($httpCode === 200) {
+            $playerDetails = fetchPlayerDetails($playerId);
+            $inventory = $playerDetails['inventory'] ?? [];
             echo "<p>House built successfully!</p>";
         } else {
             echo "<p>Failed to build house. HTTP Code: $httpCode</p>";
@@ -158,7 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         curl_close($ch);
 
         if ($httpCode === 200) {
+            $playerDetails = fetchPlayerDetails($playerId);
+            $inventory = $playerDetails['inventory'] ?? [];
             echo "<p>Trade successful!</p>";
+            $inventory = $playerDetails['inventory'] ?? [];
         } else {
             echo "<p>Failed to trade. HTTP Code: $httpCode</p>";
         }
@@ -180,44 +199,54 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-position: center center;
             background-attachment: fixed;
             color: white;
-            text-align: center;
             margin: 0;
             padding: 0;
+            align-items: center;
+            justify-content: center;
         }
 
         h1 {
-            margin-top: 20px;
-            font-size: 2.5rem;
-            text-shadow: 2px 2px 5px black;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 30px;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
         }
 
         table.map {
-            margin: 20px auto;
-            border-collapse: separate;
-            border-spacing: 5px;
+            border-collapse: collapse; /* Ensures clean edges */
+            border-spacing: 0;
+            width: 600px; /* Set a fixed width */
+            height: 600px; /* Ensures the table is a perfect square */
             background-color: rgba(255, 255, 255, 0.6);
-            aspect-ratio: 1/1;
-            width: 80%;
             box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
             border-radius: 10px;
             overflow: hidden;
         }
 
         table.map td {
-            width: 8%;
-            height: 8%;
-            border: 2px solid #000;
+            width: 10%; /* Divides the table into 10 columns */
+            height: 10%; /* Divides the table into 10 rows */
+            border: 1px solid #000;
             text-align: center;
             vertical-align: middle;
-            font-size: 0.9rem;
+            font-size: 0.8rem;
             font-weight: bold;
             color: black;
+            background-color: #fff; /* Default color */
             transition: transform 0.2s, box-shadow 0.2s;
         }
 
         table.map td:hover {
             transform: scale(1.1);
-            box-shadow: 0 0 10px yellow;
+            box-shadow: 0 0 8px yellow;
         }
 
         table.map td.white {
@@ -233,17 +262,68 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             background-color: yellow;
             color: black;
             font-weight: bold;
-            border: 3px solid red;
+        }
+
+        table.map td.enemy {
+            background-color: red;
+            color: white;
+        }
+
+        .buttons-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            width: 200px;
+            background-color: rgba(255, 255, 255, 0.2); /* Optional */
+            padding: 10px;
+            border-radius: 10px; /* Optional */
+        }
+
+        .inventory {
+            padding: 15px;
+            background-color: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+            width: 180px;
+            text-align: center;
+        }
+
+        .inventory h2 {
+            font-size: 1.5rem;
+            margin-bottom: 10px;
+            text-shadow: 1px 1px 4px black;
+        }
+
+        .inventory ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .inventory li {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px;
+            margin: 3px 0;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            font-size: 0.9rem;
+        }
+
+        .inventory li strong {
+            color: #ffcc00;
+            font-weight: bold;
         }
 
         button {
-            padding: 15px 30px;
-            font-size: 1rem;
+            padding: 8px 20px;
+            font-size: 0.9rem;
             border: none;
-            border-radius: 10px;
-            margin: 10px;
+            border-radius: 5px;
             cursor: pointer;
             transition: background-color 0.3s, transform 0.2s;
+            color: white;
         }
 
         button:hover {
@@ -256,7 +336,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         button.logout-button {
             background-color: red;
-            color: white;
             box-shadow: 0 4px 8px rgba(255, 0, 0, 0.4);
         }
 
@@ -267,7 +346,6 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
         button.collect-button {
             background-color: #3498db;
-            color: white;
             box-shadow: 0 4px 8px rgba(0, 123, 255, 0.4);
         }
 
@@ -276,70 +354,32 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
             box-shadow: 0 6px 12px rgba(0, 123, 255, 0.6);
         }
 
-        form {
-            margin-top: 20px;
-            background-color: rgba(255, 255, 255, 0.9);
-            padding: 20px;
-            border-radius: 10px;
-            display: inline-block;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        }
-
         input {
             padding: 10px;
-            font-size: 1rem;
+            font-size: 0.85rem;
             border: 1px solid #ccc;
             border-radius: 5px;
-            width: 80%;
-            margin: 10px auto;
-            display: block;
+            width: 90%;
+            margin: 5px auto;
             text-align: center;
         }
 
-        table.map td.enemy {
-            background-color: red;
-            color: white;
+        input:focus {
+            outline: none;
+            border-color: #3498db;
+            box-shadow: 0 0 5px rgba(52, 152, 219, 0.5);
         }
 
-        .inventory {
-            margin: 20px auto;
-            padding: 20px;
-            background-color: rgba(0, 0, 0, 0.7); /* Slightly darker and more opaque background */
-            color: #fff; /* Text in white for better visibility */
-            border-radius: 15px; /* Smooth, rounded corners */
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Soft shadow */
-            width: 20%;
-            text-align: center;
-        }
-
-        .inventory h2 {
-            font-size: 1.8rem;
-            margin-bottom: 10px;
-            text-shadow: 1px 1px 4px black; /* Title shadow for better contrast */
-            color: #f0f0f0;
-        }
-
-        .inventory ul {
-            list-style: none; /* Removes default bullets */
-            padding: 0;
-            margin: 0;
-        }
-
-        .inventory li {
-            display: flex;
-            justify-content: space-between; /* Align item names and quantities */
-            padding: 10px 20px;
-            margin: 5px 0;
-            background-color: rgba(255, 255, 255, 0.2); /* Light contrast on list items */
+        form {
+            margin-top: 5px;
+            padding: 10px;
+            background-color: rgba(255, 255, 255, 0.3);
             border-radius: 10px;
-            font-size: 1.1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
         }
-
-        .inventory li strong {
-            color: #ffcc00; /* Highlight the item names */
-            font-weight: bold;
-        }
-
 
 
     </style>
@@ -348,6 +388,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
 <body>
 <h1>Game Map</h1>
+<div class="container">
 <table class="map">
     <?php for ($row = 0; $row < $mapSize; $row++): ?>
         <tr>
@@ -357,7 +398,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $cellColorClass = getCellColorClass($col, $row, $playerX, $playerY, $players);
                 $cellContent = getCellContent($col, $row, $players); ?>
                 <td class="<?= $cellColorClass ?>">
-                    <p>(<?= $col ?>, <?= $row ?>)</p>
+                    <p>(<?= $row ?>, <?= $col ?>)</p>
                     <p><?= $cell['resource'] ?? '' ?></p>
                     <p><?= $cellContent ?></p>
                 </td>
@@ -383,7 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 </div>
 
 
-
+<div class="buttons-group">
 <form method="POST">
     <button type="submit" name="collect" class="collect-button">Collect Resource</button>
 </form>
@@ -397,7 +438,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     <input type="number" name="y" placeholder="New Y Coordinate" required>
     <button type="submit" name="move" class="collect-button">Move</button>
 </form>
+</div>
 
+    <div class="buttons-group">
 <form method="POST">
     <input type="number" name="targetPlayerId" placeholder="Target Player ID" required>
     <input type="text" name="resourceToGive" placeholder="Resource to Give" required>
@@ -410,5 +453,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <form method="GET">
     <button type="submit" name="logout" class="logout-button">Logout</button>
 </form>
+
+</div>
+</div>
 </body>
 </html>
