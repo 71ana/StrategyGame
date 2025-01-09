@@ -58,7 +58,8 @@ if (!$map || !is_array($map)) {
 }
 
 if (!$players || !is_array($players)) {
-    die("Failed to fetch or parse players data.");
+    header("Location: start.php");
+    exit();
 }
 
 $mapSize = 10;
@@ -77,6 +78,43 @@ $playerDetails = fetchPlayerDetails($playerId);
 if (!$playerDetails || !is_array($playerDetails)) {
     die("Failed to fetch player details.");
 }
+
+//if ($playerDetails['state'] === 'gameOver') {
+//    echo "
+//    <div id='winner-popup' class='popup'>
+//        <div class='popup-content'>
+//            <p>Game Over!</strong>.</p>
+//            <button onclick='redirectToStart()'>OK</button>
+//        </div>
+//    </div>
+//    <script>
+//        function redirectToStart() {
+//            window.location.href = 'start.php';
+//        }
+//    </script>
+//    <style>
+//        .popup {
+//            position: fixed;
+//            top: 0;
+//            left: 0;
+//            width: 100%;
+//            height: 100%;
+//            background-color: rgba(0, 0, 0, 0.5);
+//            display: flex;
+//            align-items: center;
+//            justify-content: center;
+//            z-index: 1000;
+//        }
+//        .popup-content {
+//            background-color: white;
+//            padding: 20px;
+//            border-radius: 8px;
+//            text-align: center;
+//        }
+//    </style>
+//    ";
+//    exit();
+//}
 
 $inventory = $playerDetails['inventory'] ?? [];
 
@@ -150,104 +188,108 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode === 200) {
+        if ($httpCode == 200) { // Success case
             $playerDetails = fetchPlayerDetails($playerId);
             $inventory = $playerDetails['inventory'] ?? [];
+//            echo "
+//        <div id='success-popup' class='popup'>
+//            <div class='popup-content'>
+//                <span class='close-btn' onclick='closePopup()'>&times;</span>
+//                <p>House built successfully!</p>
+//            </div>
+//        </div>
+//        <script>
+//            function closePopup() {
+//                document.getElementById('success-popup').style.display = 'none';
+//            }
+//        </script>
+//        <style>
+//            .popup {
+//                position: fixed;
+//                top: 0;
+//                left: 0;
+//                width: 100%;
+//                height: 100%;
+//                background-color: rgba(0, 0, 0, 0.5);
+//                display: flex;
+//                align-items: center;
+//                justify-content: center;
+//                z-index: 1000;
+//            }
+//            .popup-content {
+//                background-color: black;
+//                color: white;
+//                padding: 20px;
+//                border-radius: 8px;
+//                text-align: center;
+//                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+//                position: relative;
+//            }
+//            .close-btn {
+//                position: absolute;
+//                top: 10px;
+//                right: 10px;
+//                font-size: 20px;
+//                font-weight: bold;
+//                cursor: pointer;
+//            }
+//            .close-btn:hover {
+//                color: red;
+//            }
+//        </style>
+//        ";
+        } else { // Failure case
             echo "
-    <div id='success-popup' class='popup'>
-        <div class='popup-content'>
-            <span class='close-btn' onclick='closePopup()'>&times;</span>
-            <p>Failed to build house. Not enough resources!</p>
+        <div id='error-popup' class='popup'>
+            <div class='popup-content'>
+                <span class='close-btn' onclick='closePopup()'>&times;</span>
+                <p>Failed to build house. Not enough resources!</p>
+            </div>
         </div>
-    </div>
-    <script>
-        function closePopup() {
-            document.getElementById('success-popup').style.display = 'none';
+        <script>
+            function closePopup() {
+                document.getElementById('error-popup').style.display = 'none';
+            }
+        </script>
+        <style>
+            .popup {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.5);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 1000;
+            }
+            .popup-content {
+                background-color: black;
+                color: white;
+                padding: 20px;
+                border-radius: 8px;
+                text-align: center;
+                box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+                position: relative;
+            }
+            .close-btn {
+                position: absolute;
+                top: 10px;
+                right: 10px;
+                font-size: 20px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+            .close-btn:hover {
+                color: red;
+            }
+        </style>
+        ";
         }
-    </script>
-    <style>
-        .popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .popup-content {
-            background-color: Black;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            position: relative;
-        }
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .close-btn:hover {
-            color: red;
-        }
-    </style>
-    ";
-        } else {
-            echo "
-    <div id='success-popup' class='popup'>
-        <div class='popup-content'>
-            <span class='close-btn' onclick='closePopup()'>&times;</span>
-            <p>House built successfully!</p>
-        </div>
-    </div>
-    <script>
-        function closePopup() {
-            document.getElementById('success-popup').style.display = 'none';
-        }
-    </script>
-    <style>
-        .popup {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-        }
-        .popup-content {
-            background-color: Black;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            text-align: center;
-            position: relative;
-        }
-        .close-btn {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 20px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .close-btn:hover {
-            color: red;
-        }
-    </style>
-    ";
-        }
-    } elseif (isset($_POST['trade'])) {
+    }
+
+    elseif (isset($_POST['trade'])) {
         $targetPlayerId = intval($_POST['targetPlayerId']);
         $resourceToGive = $_POST['resourceToGive'];
         $quantityToGive = intval($_POST['quantityToGive']);
@@ -263,7 +305,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        if ($httpCode === 200) {
+        if ($httpCode == 200) {
             $playerDetails = fetchPlayerDetails($playerId);
             $inventory = $playerDetails['inventory'] ?? [];
             echo "<p>Trade successful!</p>";
@@ -280,6 +322,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/sockjs-client/dist/sockjs.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@stomp/stompjs/dist/stomp.min.js"></script>
+
     <title>Game Map</title>
     <style>
         body {
@@ -546,5 +591,33 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
     </div>
 </div>
+<script>
+    const socket = new SockJS('http://localhost:8080/ws');
+    const stompClient = Stomp.over(socket);
+
+    stompClient.connect({}, function (frame) {
+        console.log('Connected to WebSocket');
+        stompClient.subscribe('/topic/winner', function (message) {
+            const winnerMessage = message.body;
+            const popup = document.createElement('div');
+            popup.className = 'popup';
+            popup.innerHTML = `
+            <div class="popup-content">
+                <p>${winnerMessage}</p>
+                <button onclick="closePopup()">OK</button>
+            </div>
+        `;
+            document.body.appendChild(popup);
+        });
+    });
+
+    function closePopup() {
+        const popup = document.querySelector('.popup');
+        if (popup) {
+            popup.remove();
+        }
+    }
+</script>
+
 </body>
 </html>

@@ -2,6 +2,8 @@ package com.strategygamev2.strategygamev2.Model;
 
 import jakarta.persistence.*;
 
+import java.util.concurrent.locks.ReentrantLock;
+
 @Entity
 public class MapCell {
     @Id

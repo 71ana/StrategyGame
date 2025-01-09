@@ -72,8 +72,8 @@ public class PlayerController {
     }
 
     @Operation(description = "Check the winner", summary = "Check if a player has won the game.")
-    @PostMapping("/winner")
-    public Player gotWinner(@RequestParam Player winner) {
+    @GetMapping("/winner")
+    public Player gotWinner() {
         return playerService.checkWinner();
     }
 

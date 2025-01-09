@@ -6,13 +6,15 @@ import com.strategygamev2.strategygamev2.Repository.MapCellRepository;
 import com.strategygamev2.strategygamev2.Repository.PlayerRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 @Service
@@ -21,7 +23,10 @@ public class PlayerService {
     private PlayerRepository playerRepository;
     @Autowired
     private MapCellRepository mapCellRepository;
-    private final Lock lock = new ReentrantLock();
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
+    private final ReentrantLock lock = new ReentrantLock();
     private AtomicReference<Player> winner = new AtomicReference<>();
 
     @Value("${webhook.url}")
@@ -29,9 +34,7 @@ public class PlayerService {
 
     private void notifyWinner(Player player) {
         String message = "Game Over! The winner is: " + player.getPlayerName();
-
-        RestTemplate restTemplate = new RestTemplate();
-        restTemplate.postForEntity(webHookUrl, message, String.class);
+        messagingTemplate.convertAndSend("/topic/winner", message);
     }
 
     // Constants for building a house
@@ -39,7 +42,7 @@ public class PlayerService {
     private static final int STONE_REQUIRED = 1;
     private static final int BRICK_REQUIRED = 1;
 
-    public Player createPlayer(String name, int x, int y) {
+    public synchronized Player createPlayer(String name, int x, int y) {
         // Check if a player with the given name already exists
         Optional<Player> existingPlayer = playerRepository.findByPlayerName(name);
 
@@ -88,9 +91,14 @@ public class PlayerService {
             MapCell currentCell = mapCellRepository.findByXAndY(currentX, currentY);
             MapCell targetCell = mapCellRepository.findByXAndY(newX, newY);
 
-            if (targetCell == null || targetCell.getPlayer() != null) {
-                throw new IllegalStateException("Target cell is invalid or already occupied.");
+            if (targetCell == null) {
+                throw new IllegalStateException("Target cell does not exist.");
             }
+
+            if (targetCell.getPlayer() != null) {
+                throw new IllegalStateException("Target cell is already occupied by another player.");
+            }
+
 
             // Update the player's position
             player.setX(newX);
@@ -234,17 +242,21 @@ public class PlayerService {
     }
 
     public String buildHouse(Long playerId) {
-        synchronized (lock) {
+        lock.lock();
+        try {
             Player player = playerRepository.findById(playerId)
                     .orElseThrow(() -> new RuntimeException("Player not found"));
 
-            if (player.getState().equals("wait")) {
+            if ("wait".equals(player.getState())) {
                 return "Player is waiting for another player to finish trading.";
             }
 
+            // Check if the player has enough resources
             if (hasEnoughResources(player, "wood", WOOD_REQUIRED) &&
                     hasEnoughResources(player, "stone", STONE_REQUIRED) &&
                     hasEnoughResources(player, "brick", BRICK_REQUIRED)) {
+
+                // Deduct resources and increase house count
                 updateResources(player, "wood", -WOOD_REQUIRED);
                 updateResources(player, "stone", -STONE_REQUIRED);
                 updateResources(player, "brick", -BRICK_REQUIRED);
@@ -252,18 +264,21 @@ public class PlayerService {
 
                 playerRepository.save(player);
 
-                // Check if the player has won
-                if (player.getHousesBuilt() >= 1) {
+                if (player.getHousesBuilt() >= 2) {
                     winner.set(player);
-                    notifyWinner(player);
+                    endGame();
                     return player.getPlayerName() + " has won the game!";
                 }
+
                 return player.getPlayerName() + " built a house. Total houses: " + player.getHousesBuilt();
             } else {
                 return "Not enough resources to build a house.";
             }
+        } finally {
+            lock.unlock();
         }
     }
+
 
 
 
@@ -278,7 +293,7 @@ public class PlayerService {
         return null;
     }
 
-    public void deleteAllPlayers() {
+    public synchronized void deleteAllPlayers() {
         playerRepository.deleteAll();
     }
 
@@ -287,13 +302,22 @@ public class PlayerService {
         try {
             Player winner = checkWinner();
             if (winner != null) {
-                notifyWinner(winner);  // Notify all players about the winner
-                deleteAllPlayers();   // Remove all players from the game
-                return "Game Over! Winner: " + winner.getPlayerName();
+                winner.setState("gameOver");
+                playerRepository.save(winner);
+
+                // Send the notification to all players via WebSocket
+                String notification = "Game Over! Winner is: " + winner.getPlayerName();
+                messagingTemplate.convertAndSend("/topic/winner", notification);
+
+                deleteAllPlayers();
+
+                return notification;
             }
-            return "No winner found.";
+            return "No winner yet. :(";
         } finally {
             lock.unlock();
         }
     }
+
+
 }

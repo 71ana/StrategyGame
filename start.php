@@ -108,8 +108,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 <h1>House Builder</h1>
 <form method="POST" action="start.php">
     <input type="text" name="playerName" placeholder="Numele jucatorului" required>
-    <input type="number" name="x" placeholder="Coordonata X" required>
-    <input type="number" name="y" placeholder="Coordonata Y" required>
+    <input type="number" name="x" placeholder="Coordonata Y" required>
+    <input type="number" name="y" placeholder="Coordonata X" required>
     <button type="submit">Play</button>
 </form>
 </body>
